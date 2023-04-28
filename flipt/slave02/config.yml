@@ -1,0 +1,51 @@
+yaml-language-server: $schema=https://raw.githubusercontent.com/flipt-io/flipt/main/config/flipt.schema.json
+
+# version: "1.0"
+# log:
+#   level: INFO
+#   file:
+#   encoding: console
+#   grpc_level: ERROR
+
+ui:
+  enabled: true
+  cors:
+    enabled: true
+    allowed_origins: '*'
+
+# cors:
+#   enabled: false
+#   allowed_origins: "*"
+
+cache:
+  enabled: false
+  backend: redis
+  ttl: 60s
+  redis:
+    host: redis
+    port: 6379
+    db: 0
+  memory:
+    eviction_interval: 5m # Evict Expired Items Every 5m
+# server:
+#   protocol: http
+#   host: 0.0.0.0
+#   https_port: 443
+#   http_port: 8080
+#   grpc_port: 9000
+
+db:
+  url: mysql:root:123456@mysql-slave2:3306/flipt?charset=utf8mb4&parseTime=True&loc=Local&time_zone=UTC
+  max_idle_conn: 2
+  max_open_conn: 5 # unlimited
+  conn_max_lifetime: 30 # unlimited
+
+# tracing:
+#   enabled: false
+#   exporter: jaeger
+#   jaeger:
+#     host: localhost
+#     port: 6831
+
+# meta:
+#   check_for_updates: true

@@ -1,0 +1,134 @@
+version: '3.8'
+services:
+  flipt-slave0:
+    networks:
+      - flipt_dev
+    image: flipt/flipt:latest
+    ports:
+      - 18082:8080
+      - 19002:9000
+    command: '/flipt --config /var/opt/config.yml '
+    volumes:
+      - ./flipt/slave01/data:/var/opt/flipt
+      - ./flipt/slave01/config.yml:/var/opt/config.yml
+  flipt-slave1:
+    networks:
+      - flipt_dev
+    image: flipt/flipt:latest
+    ports:
+      - 18081:8080
+      - 19001:9000
+    command: '/flipt --config /var/opt/config.yml '
+    volumes:
+      - ./flipt/slave02/data:/var/opt/flipt
+      - ./flipt/slave02/config.yml:/var/opt/config.yml
+  flipt-master:
+    networks:
+      - flipt_dev
+    image: flipt/flipt:latest
+    ports:
+      - 18080:8080
+      - 19000:9000
+    command: '/flipt --config /var/opt/config.yml '
+    volumes:
+      - ./flipt/master/data:/var/opt/flipt
+      - ./flipt/master/config.yml:/var/opt/config.yml
+  redis:
+    networks:
+      - flipt_dev
+    image: redis:latest
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - ./redis/data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+  grafana:
+    networks:
+      - flipt_dev
+    image: grafana/grafana:9.5.0
+    container_name: grafana
+    ports:
+      - '3000:3000'
+    environment:
+      GF_DEFAULT_INSTANCE_NAME: grafana1
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./grafana/data:/var/lib/grafana
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+    restart: unless-stopped
+  prometheus:
+    networks:
+      - flipt_dev
+    image: prom/prometheus
+    depends_on:
+      - mysql-exporter
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=./prometheus/data'
+      - '--log.level=debug'
+    ports:
+      - '9090:9090'
+  mysql-exporter:
+    networks:
+      - flipt_dev
+    image: prom/mysqld-exporter:main
+    restart: always
+    depends_on:
+      - mysql-master
+      - mysql-slave1
+      - mysql-slave2
+    ports:
+      - '9104:9104'
+    command:
+      - '--config.my-cnf=/etc/mysql/exporter.cnf'
+    volumes:
+      - ./exporter/exporter.cnf:/etc/mysql/exporter.cnf
+  mysql-master:
+    networks:
+      - flipt_dev
+    image: arm64v8/mysql:8.0.33
+    restart: always
+    ports:
+      - '3306:3306'
+    volumes:
+      - ./master/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./master/data:/var/lib/mysql
+      - ./dump/master.sql:/docker-entrypoint-initdb.d/dump.sql
+    environment:
+      - 'MYSQL_ROOT_PASSWORD=123456'
+    container_name: mysql-master
+  mysql-slave1:
+    networks:
+      - flipt_dev
+    image: arm64v8/mysql:8.0.33
+    restart: always
+    ports:
+      - '3307:3306'
+    volumes:
+      - ./slave1/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./slave1/data:/var/lib/mysql
+      - ./dump/slave.sql:/docker-entrypoint-initdb.d/dump.sql
+    environment:
+      - 'MYSQL_ROOT_PASSWORD=123456'
+    container_name: mysql-slave1
+  mysql-slave2:
+    networks:
+      - flipt_dev
+    image: arm64v8/mysql:8.0.33
+    restart: always
+    ports:
+      - '3308:3306'
+    volumes:
+      - ./slave2/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./slave2/data:/var/lib/mysql
+      - ./dump/slave.sql:/docker-entrypoint-initdb.d/dump.sql
+    environment:
+      - 'MYSQL_ROOT_PASSWORD=123456'
+    container_name: mysql-slave2
+
+networks:
+  flipt_dev:
